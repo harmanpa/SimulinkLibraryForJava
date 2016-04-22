@@ -1,0 +1,210 @@
+// CUP specification for a simple expression evaluator (no actions)
+
+package org.conqat.lib.simulink.builder;
+import java.util.List;
+import java.util.ArrayList;
+import org.conqat.lib.commons.string.StringUtils;
+import org.conqat.lib.commons.logging.ILogger;
+import java.util.Collections;
+import org.conqat.lib.commons.collections.PairList;
+
+parser code {: 
+
+  private ILogger logger;
+
+	public MDLParser(java_cup.runtime.Scanner scanner, ILogger logger) {
+		super(scanner);
+		this.logger = logger;
+	}
+
+	public void debug(String message) {
+		if (logger != null) {
+			logger.debug(message);
+		} else {
+			System.out.println(message);
+		}
+	}
+
+	public void report_error(String message, Object info) {
+		MDLParserException exception = createException(message, info);
+
+		if (logger != null) {
+			logger.warn(exception.getMessage());
+		} else {
+			System.err.println(exception.getMessage());
+		}
+	}
+
+	public void report_fatal_error(String message, Object info)
+			throws MDLParserException {
+		throw createException(message, info);
+	}
+
+	public MDLParserException createException(String message, Object info) {
+		if (info instanceof java_cup.runtime.Symbol) {
+			java_cup.runtime.Symbol symbol = ((java_cup.runtime.Symbol) info);
+
+			int line = symbol.left + 1;
+			int column = symbol.right + 1;
+
+			return new MDLParserException(message + " at line: " + line
+					+ ", column: " + column, line, column);
+		}
+
+		return new MDLParserException(message);
+	}
+	
+	static class Parameter {
+	  public final String name;
+	  public final String value;
+	  
+	  public Parameter (String name, String value) {
+	    this.name=name;
+	    this.value=value;
+	  }
+	}
+:}; 
+
+
+/* Terminals (tokens returned by the scanner). */
+terminal String          BOOLEAN_LITERAL;
+terminal                 LBRACE, RBRACE;
+terminal                 LBRACK, RBRACK;
+terminal String          STRING_LITERAL;
+terminal String          INT_LITERAL;
+terminal String          FLOAT_LITERAL;
+terminal String          IDENTIFIER;
+terminal                 COMMA;
+terminal                 SEMICOLON;
+terminal                 NEWLINE;
+
+
+/* Non terminals */
+non terminal MDLSection                File;
+non terminal List<MDLSection>          SectionList;
+non terminal MDLSection                Section;
+non terminal MDLParser.Parameter       Parameter;
+non terminal String                    Value;
+non terminal Object                    SectionOrParameter;
+non terminal List<Object>              SectionOrParameterList;
+non terminal String                    Literal;
+non terminal List<String>              LiteralList;
+non terminal String                    Array;
+non terminal StringBuilder             StringList;
+non terminal StringBuilder             IdentifierList;
+non terminal                           OptSeperator;
+non terminal                           OptNewline;
+non terminal                           Empty;
+
+start with File;
+
+File ::= SectionList:l 
+                 {: RESULT =  new MDLSection("", l, new PairList<String, String>(), -1);  :}
+               ;
+
+SectionList ::= SectionList:l Section:b 
+              {: l.add(b);
+                 RESULT = l; :}
+            | Section:b
+              {: ArrayList<MDLSection> list = new ArrayList<MDLSection>();
+                list.add(b);
+                RESULT = list; :}              
+            ;
+
+Section ::= IDENTIFIER:i LBRACE OptNewline SectionOrParameterList:l RBRACE OptNewline
+          {: ArrayList<MDLSection> sections = new ArrayList<MDLSection>();
+             PairList<String, String> parameters = new PairList<String, String>();
+               
+             for (Object o : l) {
+                if (o instanceof MDLSection) {
+                  sections.add((MDLSection)o);
+                } else if (o instanceof MDLParser.Parameter) {
+                  MDLParser.Parameter param = (MDLParser.Parameter)o;
+                  parameters.add(param.name, param.value);
+                } else {
+                  throw new IllegalStateException("Parser implementation error");
+                }
+             }
+          
+             RESULT = new MDLSection(i, sections, parameters, ileft+1); :}
+        | IDENTIFIER:i LBRACE OptNewline RBRACE OptNewline
+          {: RESULT = new MDLSection(i, ileft+1); :}
+        ;
+
+SectionOrParameterList ::= SectionOrParameterList:l SectionOrParameter:e 
+                        {: l.add(e); 
+                           RESULT = l; :}
+                      | SectionOrParameter:e
+                        {: ArrayList<Object> list = 
+                              new ArrayList<Object>();
+                           list.add(e);
+                           RESULT = list; :}
+                      ;
+
+SectionOrParameter ::= Section:b
+                    {: RESULT = b; :} 
+                  | Parameter:p
+                    {: RESULT = p; :}
+                  ;
+
+Parameter ::= IDENTIFIER:i Value:a 
+             {: RESULT = new MDLParser.Parameter(i, a);  :}
+           | IDENTIFIER:i1 IdentifierList:l NEWLINE
+             {: RESULT = new MDLParser.Parameter(i1, l.toString()); :}
+           | IDENTIFIER:i NEWLINE
+             {: RESULT = new MDLParser.Parameter(i, ""); :}
+           ;
+           
+IdentifierList ::= IdentifierList:list IDENTIFIER:i
+                     {: list.append(" "); list.append(i); RESULT = list; :}
+                 | IDENTIFIER:i
+                     {: StringBuilder list = new StringBuilder(); list.append(i); RESULT = list; :}
+                 ;
+
+Value ::= Literal:l NEWLINE
+          {: RESULT = l; :}
+        | Array:a NEWLINE
+          {: RESULT = a; :}
+        | StringList:s
+          {: RESULT = s.toString();  :}
+        ;
+
+Literal ::= INT_LITERAL:l 
+            {: RESULT = l; :}
+          | FLOAT_LITERAL:l 
+            {: RESULT = l; :}
+          | BOOLEAN_LITERAL:l
+            {: RESULT =l; :}
+          ;
+
+LiteralList ::= LiteralList:list OptSeperator Literal:l
+             {: list.add(l);
+                RESULT = list; :}
+           | Literal:l
+             {: ArrayList<String> list = new ArrayList<String>();
+             list.add(l);
+             RESULT = list; :}
+           ;
+           
+StringList ::= StringList:list STRING_LITERAL:s NEWLINE
+               {: list.append(s);
+                  RESULT = list; :}
+             | STRING_LITERAL:s NEWLINE
+               {: StringBuilder list = new StringBuilder();
+                  list.append(s);
+                  RESULT=list; :}
+             ;
+
+OptSeperator ::= COMMA | SEMICOLON | Empty;
+
+OptNewline ::= NEWLINE | Empty;
+
+Empty ::= /* nothing */;
+
+Array ::= LBRACK LiteralList:l RBRACK 
+          {: RESULT = "["+StringUtils.concat(l, ", ")+"]"; :}
+        | LBRACK RBRACK
+          {: RESULT = "[]"; :}
+        ;
+
+

@@ -1,0 +1,42 @@
+struct (
+  'comment' -> struct (
+    'placement' -> '1'
+    'text' -> ''
+  )
+  'logdata' -> struct (
+    'channels' -> '1'
+    'loggingmode' -> '1'
+    'maxnumvals' -> 'inf'
+    'plotchannels' -> '1'
+  )
+  'output' -> struct (
+    'address' -> ''
+    'arb' -> '1'
+    'autoscalingmode' -> '1'
+    'castoutput' -> '0'
+    'checkmax' -> '0'
+    'checkmin' -> '0'
+    'class' -> 'default'
+    'description' -> ''
+    'freeze' -> '1'
+    'headroomunit' -> 'bit'
+    'keepdatatype' -> '1'
+    'lowerheadroom' -> '1'
+    'lsb' -> '1e-05'
+    'max' -> '97.5345'
+    'min' -> '0'
+    'name' -> '$S_$B'
+    'offset' -> '0'
+    'scaling' -> ''
+    'show' -> '0'
+    'type' -> 'uint32'
+    'unit' -> ''
+    'upperheadroom' -> '1'
+    'variable' -> ''
+    'width' -> '1'
+  )
+  'date' -> '733382.50538803241'
+  'exceptionhandling' -> '1'
+  'inputs' -> '**'
+  'scalingvalid' -> '0'
+)

@@ -1,0 +1,255 @@
+// CUP specification for a simple expression evaluator (no actions)
+
+package org.conqat.lib.simulink.targetlink;
+import java.util.List;
+import java.util.ArrayList;
+import org.conqat.lib.simulink.builder.MDLParserException;
+import org.conqat.lib.commons.collections.ImmutablePair;
+import java.util.ArrayList;
+import org.conqat.lib.commons.string.StringUtils;
+
+parser code {: 
+  public static void debug(String message) {
+    System.out.println(message);
+  }
+  
+  public void report_error(String message, Object info) {
+    System.err.println(message);
+  }
+ 
+  /* Change the method report_fatal_error so when it reports a fatal
+     error it will display the line and column number of where the
+     fatal error occurred in the input as well as the reason for the
+     fatal error which is passed into the method in the object
+     'message' and then exit.*/
+  public void report_fatal_error(String message, Object info) throws Exception {     
+      if (info instanceof java_cup.runtime.Symbol) {
+        java_cup.runtime.Symbol symbol = ((java_cup.runtime.Symbol) info);
+        
+        int line = symbol.left+1;
+        int column = symbol.right+1;
+        
+        throw new MDLParserException(message+" at line: "+line+", column: "+column, line, column);
+        
+      } else {
+        throw new MDLParserException(message);
+      }
+  }
+  
+  public static TargetlinkStruct buildStruct (List<ImmutablePair> l) {
+      TargetlinkStruct struct = new TargetlinkStruct();
+	  for (ImmutablePair<String, Object> pair : l) {
+			Object value = pair.getSecond();
+			if (value instanceof TargetlinkStruct) {
+			  struct.addChild(pair.getFirst(), (TargetlinkStruct)value);
+			} else if (value instanceof String) {
+			  struct.setParameter(pair.getFirst(), (String)value);
+			} else {
+			  throw new IllegalStateException("Unknown value type.");
+			}
+	  }
+	  return struct;
+  }
+:}; 
+
+
+/* Terminals (tokens returned by the scanner). */
+terminal                 LBRACK, RBRACK;
+terminal                 LBRACE, RBRACE;
+terminal                 DLBRACE, DRBRACE;
+terminal                 LPAREN, RPAREN;
+terminal                 STRING_LITERAL;
+terminal                 INT_LITERAL;
+terminal                 FLOAT_LITERAL;
+terminal                 IDENTIFIER;
+terminal                 COMMA;
+terminal                 STRUCT;
+terminal                 SEMICOLON;
+terminal                 PLUS,MINUS,MULT, DIV;
+
+
+/* Non terminals */
+non terminal TargetlinkStruct                               TargetLinkData;
+non terminal TargetlinkStruct                               OldStyleStruct;
+non terminal TargetlinkStruct                               NewStyleStruct;
+non terminal List<ImmutablePair>                            KeyValueList;
+non terminal List<ImmutablePair>                            NewStyleKeyValueList;
+non terminal ImmutablePair                                  KeyValue;
+non terminal ImmutablePair                                  NewStyleKeyValue;
+non terminal String                                         Literal;
+non terminal String                                         NewStyleLiteral;
+non terminal String                                         CompoundLiteral;
+non terminal String                                         CompoundIdentifier;
+non terminal String                                         Literals;
+non terminal String                                         Identifiers;
+non terminal List<String>                                   LiteralList;
+non terminal String                                         Array;
+non terminal String                                         List;
+non terminal List<String>                                   ListItems;
+non terminal String                                         ListItem;
+non terminal String                                         Operator;
+non terminal String                                         NumberLiteral;
+non terminal Object                                         Value;
+non terminal Object                                         NewStyleValue;
+
+
+/* precedence left error, 
+                RBRACK, IDENTIFIER, COMMA;*/
+
+start with TargetLinkData;
+
+TargetLinkData ::= OldStyleStruct:s
+                   {: RESULT = s; :}
+				 | NewStyleStruct:s
+                   {: RESULT = s; :}
+				 | LBRACK RBRACK
+				   {: RESULT = new TargetlinkStruct(); :}
+				 ;
+		    
+OldStyleStruct ::= STRUCT LPAREN  KeyValueList:l RPAREN
+		           {: RESULT = TargetlinkDataParser.buildStruct (l); :}
+		           ;
+
+NewStyleStruct ::= LBRACE NewStyleKeyValueList:l RBRACE
+                   {: RESULT = TargetlinkDataParser.buildStruct (l); :}
+                  ;
+
+KeyValueList ::= KeyValueList:l COMMA KeyValue:k 
+                  {: l.add(k);
+                     RESULT = l; :}
+                | KeyValue:k
+                  {: ArrayList<ImmutablePair> list = new ArrayList<ImmutablePair>();
+                     list.add(k);
+                     RESULT = list; :}          
+                ;
+                
+NewStyleKeyValueList ::= NewStyleKeyValueList:l COMMA NewStyleKeyValue:k 
+		                  {: l.add(k);
+		                     RESULT = l; :}
+		                | NewStyleKeyValue:k
+		                  {: ArrayList<ImmutablePair> list = new ArrayList<ImmutablePair>();
+		                     list.add(k);
+		                     RESULT = list; :}          
+		                ;
+
+KeyValue ::= STRING_LITERAL:l COMMA Value:v
+             {: RESULT = new ImmutablePair<String, Object>(l.toString(), v); :}
+             ;
+             
+NewStyleKeyValue ::= STRING_LITERAL:l COMMA NewStyleValue:v
+		             {: RESULT = new ImmutablePair<String, Object>(l.toString(), v); :}
+		             ;
+
+Value ::= Literal:l
+          {: RESULT = l; :}
+        | OldStyleStruct:s
+          {: RESULT = s; :}
+        | Array:a
+          {: RESULT = a; :}
+        | List:l
+          {: RESULT = l; :}  
+        ;
+        
+NewStyleValue ::= NewStyleLiteral:l
+          {: RESULT = l; :}
+        | NewStyleStruct:s
+          {: RESULT = s; :}
+        | Array:a
+          {: RESULT = a; :}
+        | List:l
+          {: RESULT = l; :}  
+        ;
+
+NewStyleLiteral ::= INT_LITERAL:l 
+            {: RESULT = l.toString(); :}
+          | FLOAT_LITERAL:l
+            {: RESULT = l.toString(); :}
+          | STRING_LITERAL:l
+            {: RESULT = l.toString(); :}
+          | IDENTIFIER:i
+            {: RESULT = i.toString(); :}
+          ;
+          
+Literal ::= NewStyleLiteral:l
+			{: RESULT = l; :}          
+          | CompoundLiteral:i
+            {: RESULT = i.toString(); :}  
+          | CompoundIdentifier:i
+            {: RESULT = i.toString(); :}
+          ;
+          
+CompoundLiteral ::= IDENTIFIER:i LPAREN Literals:l RPAREN
+                    {: RESULT = i.toString()+"("+l.toString()+")"; :}
+                  | NumberLiteral:n Operator:o IDENTIFIER:i LPAREN Literals:l RPAREN
+                    {: RESULT = n+o+i.toString()+"("+l.toString()+")"; :}  
+                  | LBRACE Literals:l RBRACE
+                    {: RESULT = "{"+l.toString()+"}"; :}
+                    ;      
+                    
+Literals ::= Literals:l COMMA Literal:i
+			 {: RESULT = l.toString() +","+i.toString(); :}
+		   | Literal:l
+		   	 {: RESULT = l.toString(); :}
+		   ; 
+          
+LiteralList ::= LiteralList:list Literal:l
+             {: list.add(l);
+                RESULT = list; :}
+           | Literal:l
+             {: ArrayList<String> list = new ArrayList<String>();
+             list.add(l);
+             RESULT = list; :}
+           ;        
+           
+CompoundIdentifier ::= LBRACE Identifiers:i RBRACE  
+                       {: RESULT = "{"+i.toString()+"}"; :}
+                      ;     
+                      
+Identifiers ::= Identifiers:i1 COMMA IDENTIFIER:i2
+			    {: RESULT = i1.toString() +","+i2.toString(); :}		    
+		     ; 
+
+Array ::= LBRACK LiteralList:l RBRACK 
+          {:  RESULT = StringUtils.concat(l, " "); :}
+        | LBRACK RBRACK
+          {: RESULT = "[]"; :}
+        ;
+        
+List ::= DLBRACE ListItems:l DRBRACE 
+         {:  RESULT = "{{"+StringUtils.concat(l, ";") +"}}"; :}
+       | DLBRACE DRBRACE
+         {:  RESULT = "{{}}"; :}  
+         ;
+
+ListItems ::= ListItems:l SEMICOLON ListItem:i
+              {: l.add(i);
+                 RESULT = l; :}
+            | ListItem:i
+              {: ArrayList<String> l = new ArrayList<String>();
+                 l.add(i);
+                 RESULT = l;
+               :}
+            ;
+            
+ListItem ::= STRING_LITERAL:l
+			 {: RESULT = l.toString(); :}
+           | LBRACK STRING_LITERAL:l RBRACK
+             {: RESULT = "["+l.toString()+"]"; :}
+           ;            
+
+Operator ::= PLUS 
+            {: RESULT="+"; :}   
+          |  MINUS
+            {: RESULT="-"; :}   
+          |  MULT 
+            {: RESULT="*"; :}   
+          |  DIV 
+            {: RESULT="/"; :}    
+          ;
+          
+NumberLiteral ::= INT_LITERAL:l
+				 {: RESULT=l.toString(); :}     
+			  | FLOAT_LITERAL:l
+				 {: RESULT=l.toString(); :}
+			  ;     
+

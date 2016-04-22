@@ -1,0 +1,1 @@
+{'logdata',{'plotchannels',[]},'output',{'variable','DPFRc_prevActvRgnrtnStatusSt'},'state',{'max',30,'min',0,'type','uint8','scaling','./LocalScaling'},'date',734875.60776526621}

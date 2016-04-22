@@ -1,0 +1,45 @@
+struct (
+  'comment' -> struct (
+    'placement' -> '1'
+    'text' -> ''
+  )
+  'logdata' -> struct (
+    'channels' -> '1'
+    'loggingmode' -> '3'
+    'maxnumvals' -> 'inf'
+    'plotchannels' -> '[]'
+  )
+  'message' -> struct (
+    'component' -> ''
+    'name' -> ''
+  )
+  'output' -> struct (
+    'address' -> ''
+    'arb' -> '0'
+    'autoscalingmode' -> '1'
+    'castoutput' -> '0'
+    'checkmax' -> '0'
+    'checkmin' -> '0'
+    'class' -> 'FCN_OUT'
+    'description' -> 'Eingang vom Fahrpedal; char(10)  char(10) Drehzahlreglermode der prim�ren Anforderung an den Motor (Requested Speed Control Conditions) char(10)  char(10) F�r Drehzahlanforderungen und Begrenzungen der Drehzahlbeschleunigung wird ein Drehzahlreglermode vorgegeben. Dieser besagt, welche Reglerparameter des Drehzahlreglers verwendet werden sollen. char(10)  char(10) Hier gelten die Festlegungen laut SAE J1939.'
+    'freeze' -> '1'
+    'headroomunit' -> 'bit'
+    'keepdatatype' -> '1'
+    'lowerheadroom' -> '1'
+    'lsb' -> '1'
+    'max' -> 'NaN'
+    'min' -> 'NaN'
+    'name' -> '$D'
+    'offset' -> '0'
+    'scaling' -> './LocalScaling'
+    'show' -> '0'
+    'type' -> 'uint8'
+    'unit' -> ''
+    'upperheadroom' -> '1'
+    'variable' -> 'TMEN_TscRsccPri00'
+    'width' -> '1'
+  )
+  'date' -> '732744.367268391'
+  'scalingvalid' -> '0'
+  'virtual' -> '1'
+)

@@ -1,0 +1,35 @@
+=========================================================================
+==  NOTICE file corresponding to the section 4 d of                    ==
+==  the Apache License, Version 2.0,                                   ==
+==  in this case for the ConQAT distribution.                          ==
+=========================================================================
+
+Simulink Library
+Copyright 2005-2007 Technische Universitaet Muenchen
+
+-------------------------------------------------------------------------
+The Simulink library uses CCSM-Commons 
+(http://www4.cs.tum.edu/~ccsm/commons/) provided by the Technische 
+Universitaet Muenchen (licensed under Apache License 2.0).
+
+-------------------------------------------------------------------------
+The Simulink library uses the CUP parser generator as well as its runtime
+library (http://www2.cs.tum.edu/projects/cup/).
+
+CUP Parser Generator Copyright Notice, License, and Disclaimer
+Copyright 1996-1999 by Scott Hudson, Frank Flannery, C. Scott Ananian 
+
+-------------------------------------------------------------------------
+The Simulink library uses JUnit (http://www.junit.org/) for unit testing. 
+JUnit is under Common Public License 1.0 
+(http://opensource.org/licenses/cpl1.0.php).
+
+-------------------------------------------------------------------------
+The Simulink library uses JFLex (http://jflex.de) for generating 
+scanners. JFlex is licensed under GNU Public License
+(http://jflex.de/copying.html). JFlex is used at build-time only and is
+not linked against the the Simulink library.
+
+-------------------------------------------------------------------------
+MATLAB, Simulink, Stateflow are registered trademarks The MathWorks, Inc.
+TargetLink is a registered trademark of dSPACE GmbH.

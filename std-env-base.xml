@@ -1,0 +1,398 @@
+<!-- ==================================================================+
+ | STD-ENV                                                             |
+ |                                                                     |
+   $Id: std-env-base.xml 47167 2013-12-09 14:33:26Z hummelb $            
+ |                                                                     |
+ | Copyright (c)  2004-2005 Technische Universitaet Muenchen           |
+ |                                                                     |
+ | Technische Universitaet Muenchen             #########  ##########  |
+ | Institut fuer Informatik - Lehrstuhl IV         ##  ##  ##  ##  ##  |
+ | Prof. Dr. Manfred Broy                          ##  ##  ##  ##  ##  |
+ | Boltzmannstr. 3                                 ##  ##  ##  ##  ##  |
+ | 85748 Garching bei Muenchen                     ##  ##  ##  ##  ##  |
+ | Germany                                         ##  ######  ##  ##  |
+ +=====================================================================+-->
+
+<!--
+
+ author Florian Deissenboeck
+ author $Author: hummelb $
+ 
+ version $Rev: 47167 $
+ rating RED
+-->
+<project name="std-env" basedir=".">
+
+	<!-- Access key for environment variables -->
+	<property environment="env" />
+
+
+	<!-- Standard directories as defined in the LEvD manual -->
+	<property name="src.dir" value="src" />
+	<property name="ext-src.dir" value="external-src" />
+	<property name="test-src.dir" value="test-src" />
+	<property name="generated-src.dir" value="generated-src" />
+	<property name="external.dir" value="external" />
+	<property name="build.dir" value="build" />
+	<property name="dist.dir" value="dist" />
+	<property name="lib.dir" value="lib" />
+	<property name="log.dir" value="log" />
+	<property name="test-data.dir" value="test-data" />
+	<property name="test-tmp.dir" value="test-tmp" />
+	<property name="javadoc.dir" value="javadoc" />
+	<property name="junit.dir" value="${log.dir}/junit" />
+
+
+	<!-- distribution directories -->
+	<property name="dist.binary.dir" value="${dist.dir}/binary" />
+	<property name="dist.binary.root.dir" value="${dist.dir}/binary/${ant.project.name}" />
+	<property name="dist.source.dir" value="${dist.dir}/source" />
+	<property name="dist.source.root.dir" value="${dist.source.dir}/${ant.project.name}" />
+	<property name="dist.library.dir" value="${dist.dir}/library" />
+
+	<!-- distribution files -->
+	<property name="dist.binary.zip" value="${ant.project.name}-binary-${version}.zip" />
+	<property name="dist.source.zip" value="${ant.project.name}-source-${version}.zip" />
+
+
+
+
+
+	<!-- === Init target ================================================ -->
+
+	<!-- Basic initalization target that can be overriden  -->
+	<target name="init" />
+
+	<!-- === Directory setup and clean targets ========================== -->
+
+	<!-- Creates the standard top-level directories. Creation of deeper 
+	     structures is left to the respective targets. -->
+	<target name="mkdirs" description="STD-ENV: Create directories.">
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${log.dir}" />
+		<mkdir dir="${javadoc.dir}" />
+		<mkdir dir="${junit.dir}" />
+		<mkdir dir="${dist.dir}" />
+	</target>
+
+	<!-- Deletes the standard top-level directories. -->
+	<target name="clean" description="STD-ENV: Delete directories.">
+		<delete dir="${build.dir}" />
+		<delete dir="${log.dir}" />
+		<delete dir="${javadoc.dir}" />
+		<delete dir="${junit.dir}" />
+		<delete dir="${dist.dir}" />
+		<delete dir="${test-tmp.dir}" />
+	</target>
+
+	<!-- Deletes all files in generated-src but no directories. 
+		 This preserves SVN meta-data directories and thus allows to check in generated code. -->
+	<target name="clean-generated-src" description="STD-ENV: Delete files in generated source.">
+		<delete>
+			<!-- '.svn' is in default excludes, so no need to list here.  -->
+			<fileset dir="${generated-src.dir}" includes="**/*.*" />
+		</delete>
+	</target>
+
+	<!-- Normalized all files in generated-src to have correct line ending and 
+		eliminate parts that would change every time (such as time stamps). -->
+	<target name="normalize-generated-src" description="STD-ENV: Normalize files in generated source.">
+		<fixcrlf srcdir="${generated-src.dir}" includes="**/*.*" eof="remove" />
+
+		<!-- JFlex time stamps -->
+		<replaceregexp match="\d{1,2}/\d{1,2}/\d{1,2} \d{1,2}:\d{2} (AM|PM)?" replace="{{TIMESTAMP}}" flags="g">
+			<fileset dir="${generated-src.dir}" includes="**/*.*" />
+		</replaceregexp>
+
+		<!-- CUP time stamps -->
+		<replaceregexp match="(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \w+ \d{1,2} \d{1,2}:\d{2}:\d{2} CEST \d{4}" replace="{{TIMESTAMP}}" flags="g">
+			<fileset dir="${generated-src.dir}" includes="**/*.*" />
+		</replaceregexp>
+
+		<!-- ANTLR time stamps -->
+		<replaceregexp match="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}" replace="{{TIMESTAMP}}" flags="g">
+			<fileset dir="${generated-src.dir}" includes="**/*.*" />
+		</replaceregexp>
+	</target>
+
+	<!-- === Compile Targets ============================================ -->
+
+	<!-- Compile sources in source folder to build folder.  -->
+	<target name="compile" depends="mkdirs, init" description="STD-ENV: Compile Java sources.">
+		<condition property="additional-src-ext.dir" value="${ext-src.dir}" else="${src.dir}">
+			<available file="${ext-src.dir}" />
+		</condition>
+
+		<condition property="additional-src-gen.dir" value="${generated-src.dir}" else="${src.dir}">
+			<available file="${generated-src.dir}" />
+		</condition>
+		
+		<mkdir dir="empty" />
+
+		<condition property="additional-external.dir" value="${external.dir}" else="empty">
+			<available file="${external.dir}" />
+		</condition>
+
+		<javac destdir="${build.dir}" debug="true" listfiles="true" source="1.7" target="1.7" includeantruntime="false">
+			<src>
+				<pathelement path="${src.dir}" />
+				<pathelement path="${additional-src-ext.dir}" />
+				<pathelement path="${additional-src-gen.dir}" />
+				<dirset dir="${additional-external.dir}" includes="*" />
+			</src>
+			<compilerarg value="-Xlint:all" />
+			<compilerarg value="-Xlint:-serial" />
+			<compilerarg value="-Xlint:-fallthrough" />
+			<classpath refid="classpath" />
+		</javac>
+
+		<copy todir="${build.dir}">
+			<fileset dir="${src.dir}">
+				<exclude name="**/*.java" />
+				<exclude name="**/*.html" />
+			</fileset>
+			<fileset dir="${additional-src-ext.dir}">
+				<exclude name="**/*.java" />
+				<exclude name="**/*.html" />
+			</fileset>
+			<fileset dir="${additional-src-gen.dir}">
+				<exclude name="**/*.java" />
+				<exclude name="**/*.html" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- Compile test sources in test source folder to build folder. -->
+	<target name="compile-tests" depends="compile" description="STD-ENV: Compile unit tests.">
+		<javac srcdir="${test-src.dir}" destdir="${build.dir}" debug="true" listfiles="true" source="1.7" target="1.7" includeantruntime="false">
+			<compilerarg value="-Xlint:all" />
+			<compilerarg value="-Xlint:-serial" />
+			<compilerarg value="-Xlint:-fallthrough" />
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	<!-- === JavaDoc Target ============================================= -->
+
+	<!-- Creates JavaDoc documentation of the source files in the source
+       folder and stores it in the javadoc folder. Variables 
+       ${display-name} and ${version} are used for headers and footers.  -->
+	<target name="javadoc" depends="mkdirs, init" description="STD-ENV: Create JavaDoc.">
+		<javadoc locale="en" packagenames="*" sourcepath="${src.dir}" destdir="${javadoc.dir}" author="true" version="true" private="true" linksource="true" breakiterator="true" use="true" windowtitle="${display-name} JavaDoc" doctitle="${display-name}" header="${display-name}" bottom="${display-name} - ${version}" source="1.7" includenosourcepackages="true" link="http://java.sun.com/javase/6/docs/api/">
+			<classpath refid="classpath" />
+			<tag name="levd.rating" description="Rating: " />
+		</javadoc>
+
+		<copy todir="${javadoc.dir}">
+			<fileset dir="${src.dir}">
+				<include name="**/*.*" />
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- Creates PUBLIC JavaDoc documentation of the source files in the source
+       folder and stores it in the javadoc folder. Variables 
+       ${display-name} and ${version} are used for headers and footers.  -->
+	<target name="javadoc-public" depends="mkdirs, init" description="STD-ENV: Create JavaDoc.">
+		<javadoc locale="en" packagenames="*" sourcepath="${src.dir}" destdir="${javadoc.dir}" author="true" version="true" linksource="true" breakiterator="true" use="true" windowtitle="${display-name} JavaDoc" doctitle="${display-name}" header="${display-name}" bottom="${display-name} - ${version}" source="1.7" includenosourcepackages="true" link="http://java.sun.com/javase/6/docs/api/">
+			<classpath refid="classpath" />
+			<tag name="levd.rating" description="Rating: " />
+		</javadoc>
+
+		<copy todir="${javadoc.dir}">
+			<fileset dir="${src.dir}">
+				<include name="**/*.*" />
+				<exclude name="**/*.java" />
+				<exclude name="**/package.html" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- === Task definitions =========================================== -->
+
+	<target name="task-def-jflex" description="STD-ENV: Define JFlex task">
+		<taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="tools/JFlex.jar" onerror="report" />
+	</target>
+
+	<target name="task-def-cup" description="STD-ENV: Define CUP task">
+		<taskdef name="cup" classname="java_cup.anttask.CUPTask" classpath="tools/cup.jar" onerror="report" />
+	</target>
+
+	<target name="task-def-antlr" description="STD-ENV: Define ANTLR task">
+		<!-- DEPRECATED: This should not be used anymore! Instead have a look at the ANTLR call in CQDDL lib. -->
+		<taskdef name="antlr3" classname="org.apache.tools.ant.antlr.ANTLR3" classpath="tools/antlr-task.jar;tools/antlr.jar;tools/antlr-2.7.7.jar;tools/stringtemplate.jar;${lib.dir}/antlr-runtime.jar" onerror="report" />
+	</target>
+
+	<target name="task-def-texen" description="STD-ENV: Define Velocity/Texen task">
+		<taskdef name="texen" classname="org.apache.texen.ant.TexenTask" classpath="tools/texen.jar;tools/velocity.jar;tools/commons-collections.jar;tools/commons-lang.jar" onerror="report" />
+	</target>
+
+	<!-- === Distribution support targets =============================== -->
+
+	<!-- General distribution target that depends on 'dist-source' and
+       'dist-binary'. -->
+	<target name="dist" depends="clean, dist-binary, dist-source" description="STD-ENV: Create distributions." />
+
+	<!-- Binary dist -->
+	<target name="dist-binary" depends="compile, javadoc-public" description="STD-ENV: Create binary distribution.">
+
+		<mkdir dir="${dist.binary.root.dir}" />
+		<copy file="LICENSE" todir="${dist.binary.root.dir}" />
+		<copy file="NOTICE" todir="${dist.binary.root.dir}" />
+		<copy todir="${dist.binary.root.dir}/${javadoc.dir}">
+			<fileset dir="${javadoc.dir}" />
+		</copy>
+
+		<copy todir="${dist.binary.root.dir}/${lib.dir}" failonerror="false">
+			<fileset dir="${lib.dir}" />
+		</copy>
+
+		<jar destfile="${dist.binary.root.dir}/${lib.dir}/${ant.project.name}.jar">
+			<fileset dir="${build.dir}" excludes="**/test/**/*.*" />
+			<manifest>
+				<attribute name="Provider" value="Technische Universitaet Muenchen" />
+				<attribute name="Project" value="${display-name}" />
+				<attribute name="Version" value="${version}" />
+			</manifest>
+		</jar>
+
+		<zip destfile="${dist.dir}/${dist.binary.zip}" basedir="${dist.binary.dir}" />
+	</target>
+
+	<!-- Source dist. -->
+	<target name="dist-source" description="STD-ENV: Create source distribution." depends="mkdirs, init">
+		<mkdir dir="${dist.source.root.dir}" />
+
+		<copy file="build.xml" todir="${dist.source.root.dir}" />
+		<copy file="std-env-base.xml" todir="${dist.source.root.dir}" />
+		<copy file="LICENSE" todir="${dist.source.root.dir}" />
+		<copy file="NOTICE" todir="${dist.source.root.dir}" />
+		<copy file=".classpath" todir="${dist.source.root.dir}" />
+		<copy file=".project" todir="${dist.source.root.dir}" />
+
+		<copy todir="${dist.source.root.dir}/${src.dir}" failonerror="false">
+			<fileset dir="${src.dir}" />
+		</copy>
+
+		<copy todir="${dist.source.root.dir}/${test-src.dir}" failonerror="false">
+			<fileset dir="${test-src.dir}" />
+		</copy>
+
+		<copy todir="${dist.source.root.dir}/${external.dir}" failonerror="false">
+			<fileset dir="${external.dir}" />
+		</copy>
+		
+		<copy todir="${dist.source.root.dir}/resources" failonerror="false">
+			<fileset dir="resources" />
+		</copy>
+
+		<copy todir="${dist.source.root.dir}/${test-data.dir}" failonerror="false">
+			<fileset dir="${test-data.dir}">
+				<exclude name="**/internal_*" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dist.source.root.dir}/${lib.dir}" failonerror="false">
+			<fileset dir="${lib.dir}" />
+		</copy>
+
+		<copy todir="${dist.source.root.dir}/tools" failonerror="false">
+			<fileset dir="tools" />
+		</copy>
+
+		<antcall target="sourceDistActions" />
+
+		<zip destfile="${dist.dir}/${dist.source.zip}" basedir="${dist.source.dir}" />
+	</target>
+
+	<!-- Template target to be overwritten by other build files. -->
+	<target name="sourceDistActions" description="STD-ENV: Template target for action to perform for source dist" />
+
+	<!-- This target create a jar file with all class in the build folder. 
+       The file is located in dist/library and called {project-name}.jar -->
+	<target name="dist-library" description="STD-ENV: Create library distribution." depends="compile">
+		<mkdir dir="${dist.library.dir}" />
+		<jar destfile="${dist.library.dir}/${ant.project.name}.jar">
+			<fileset dir="${build.dir}" />
+		</jar>
+	</target>
+
+	<!-- This target copies the library distribution to infrastructure/libs -->
+	<target name="copy-library" description="STD-ENV: Copy library distribution to infrastructure/libs." depends="clean, dist-library">
+		<copy file="${dist.library.dir}/${ant.project.name}.jar" todir="../../infrastructure/libs" />
+	</target>
+
+	<!-- === Test target ================================================ -->
+
+	<!-- Run Junit tests with output directory ${junit.dir} -->
+	<target name="test" description="STD-ENV: Run JUnit tests." depends="compile-tests">
+		<property name="test.output.dir" value="${junit.dir}" />
+
+		<!-- We have some tests for which 256m are not sufficient. -->
+		<junit printsummary="yes" haltonfailure="no" fork="yes" dir="${basedir}" maxmemory="512m">
+			<formatter type="xml" usefile="true" />
+			<batchtest fork="yes" todir="${test.output.dir}">
+				<fileset dir="${test-src.dir}">
+					<include name="**/*Test.java" />
+					<exclude name="**/*Suite*.java" />
+				</fileset>
+			</batchtest>
+			<classpath refid="classpath" />
+		</junit>
+
+		<junitreport todir="${test.output.dir}">
+			<fileset dir="${test.output.dir}">
+				<include name="TEST-*.xml" />
+			</fileset>
+			<report format="frames" todir="${test.output.dir}" />
+		</junitreport>
+	</target>
+
+	<!-- Run Junit tests with output directory ${junit.dir} -->
+	<target name="test-with-coverage" description="STD-ENV: Run JUnit tests." depends="compile-tests" xmlns:jacoco="antlib:org.jacoco.ant">
+		<property name="test.output.dir" value="${junit.dir}" />
+
+		<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+			<classpath path="path_to_jacoco/lib/jacocoant.jar" />
+		</taskdef>
+
+		<jacoco:coverage>
+			<!-- We have some tests for which 256m are not sufficient. -->
+			<junit printsummary="yes" haltonfailure="no" fork="yes" forkmode="once" dir="${basedir}" maxmemory="512m">
+				<formatter type="xml" usefile="true" />
+				<batchtest fork="yes" todir="${test.output.dir}">
+					<fileset dir="${test-src.dir}">
+						<include name="**/*Test.java" />
+						<exclude name="**/*Suite*.java" />
+					</fileset>
+				</batchtest>
+				<classpath refid="classpath" />
+			</junit>
+		</jacoco:coverage>
+
+		<junitreport todir="${test.output.dir}">
+			<fileset dir="${test.output.dir}">
+				<include name="TEST-*.xml" />
+			</fileset>
+			<report format="frames" todir="${test.output.dir}" />
+		</junitreport>
+
+		<jacoco:report>
+			<executiondata>
+				<file file="jacoco.exec" />
+			</executiondata>
+
+			<structure name="${display-name} JaCoCo Report">
+				<classfiles>
+					<fileset dir="${build.dir}">
+						<include name="**/*.class" />
+					</fileset>
+				</classfiles>
+			</structure>
+
+			<xml destfile="jacoco.xml" />
+		</jacoco:report>
+	</target>
+</project>
